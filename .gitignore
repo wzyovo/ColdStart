@@ -1,0 +1,21 @@
+# Python caches
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# Model artifacts
+models/**/best_model.pt
+models/**/model.json
+
+# Generated model outputs
+models/**/training_summary.json
+models/**/evaluation.json
+models/**/evaluation_stub.json
+models/**/training_plan.json
+models/**/cold_user_top10*.csv
+models/**/top10_items.csv
+
+# Raw dataset
+tianchi_public_data_train_new.txt

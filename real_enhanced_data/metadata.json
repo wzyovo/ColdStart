@@ -1,0 +1,16 @@
+{
+  "merchants": 520,
+  "items": 15000,
+  "item_tags": 70387,
+  "users": 3300,
+  "user_preferences": 15290,
+  "user_circles": 3300,
+  "browsing_logs": 34170,
+  "reviews": 15575,
+  "cold_start_users": 100,
+  "notes": [
+    "Users and item IDs come from the real Tianchi-derived dataset.",
+    "Merchant attributes, tags, circles, and review text are augmented business fields.",
+    "This dataset mixes real behavior with synthetic semantic attributes for cold-start modeling."
+  ]
+}

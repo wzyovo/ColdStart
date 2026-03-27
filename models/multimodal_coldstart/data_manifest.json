@@ -1,0 +1,15 @@
+{
+  "config": {
+    "root": "real_enhanced_data",
+    "model_dir": "models\\multimodal_coldstart",
+    "max_seq_len": 3,
+    "candidate_size": 200,
+    "top_k": 10
+  },
+  "outputs": {
+    "item_multimodal_features": "real_enhanced_data\\item_multimodal_features.csv",
+    "cold_start_eval_users": "real_enhanced_data\\cold_start_eval_users.csv",
+    "cold_interactions_step1": "real_enhanced_data\\cold_interactions_step1.csv",
+    "cold_interactions_step3": "real_enhanced_data\\cold_interactions_step3.csv"
+  }
+}

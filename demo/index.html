@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冷启动推荐演示</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">冷启动外卖推荐系统</p>
+        <h1>多标签冷启动推荐演示</h1>
+        <p class="subtitle">
+          展示新用户从首次访问到三次交互后的推荐逻辑变化，以及标签贡献权重的可解释输出。
+        </p>
+      </div>
+      <div class="stage-switch">
+        <button class="stage active" data-stage="zero_shot">首次访问</button>
+        <button class="stage" data-stage="one_shot">1 次交互后</button>
+        <button class="stage" data-stage="three_shot">3 次交互后</button>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>推荐结果</h2>
+        <div id="recommendations" class="recommendations"></div>
+      </article>
+
+      <article class="panel">
+        <h2>标签贡献解释</h2>
+        <div id="contributions" class="contributions"></div>
+      </article>
+    </section>
+
+    <section class="timeline panel">
+      <h2>推荐逻辑演化</h2>
+      <div id="evolution" class="evolution"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
