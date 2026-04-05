@@ -25,6 +25,7 @@ class ModelConfig:
     fusion_dim: int = 128
     lstm_hidden_dim: int = 64
     label_count: int = 16
+    match_dim: int = 5
     dropout: float = 0.1
 
 

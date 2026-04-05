@@ -24,7 +24,7 @@ class TextEncoder(nn.Module):
         conv_output = torch.relu(self.conv(conv_input)).transpose(1, 2)
         seq_output, _ = self.lstm(conv_output)
         seq_output = self.dropout(seq_output)
-        # 通过注意力池化突出文本里更关键的口味和场景词。
+        # 用注意力池化突出文本里更关键的口味和场景词。
         attn_logits = self.attn(seq_output).squeeze(-1)
         padding_mask = token_ids.eq(0)
         attn_logits = attn_logits.masked_fill(padding_mask, -1e9)
@@ -50,7 +50,7 @@ class AttentionFusion(nn.Module):
         self.query_proj = nn.Linear(query_dim, fusion_dim)
         self.key_proj = nn.Linear(key_dim, fusion_dim)
         self.value_proj = nn.Linear(key_dim, fusion_dim)
-        self.scale = fusion_dim ** -0.5
+        self.scale = fusion_dim**-0.5
 
     def forward(self, query: torch.Tensor, memory: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         q = self.query_proj(query).unsqueeze(1)
@@ -74,6 +74,7 @@ class MultiModalColdStartModel(nn.Module):
         lstm_hidden_dim: int,
         fusion_dim: int,
         label_count: int,
+        match_dim: int,
         dropout: float,
     ) -> None:
         super().__init__()
@@ -110,6 +111,26 @@ class MultiModalColdStartModel(nn.Module):
             nn.Linear(fusion_dim, label_count),
         )
 
+        # 冷启动匹配分支：把画像匹配特征编码后与多模态表示共同参与排序。
+        self.match_proj = nn.Sequential(
+            nn.Linear(match_dim, fusion_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(fusion_dim // 2, fusion_dim // 2),
+            nn.ReLU(),
+        )
+        self.match_gate = nn.Sequential(
+            nn.Linear(fusion_dim + fusion_dim // 2, fusion_dim),
+            nn.Sigmoid(),
+        )
+        self.rank_with_match = nn.Sequential(
+            nn.Linear(fusion_dim * 3 + fusion_dim // 2, fusion_dim),
+            nn.LayerNorm(fusion_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(fusion_dim, 1),
+        )
+
     def forward(
         self,
         user_context: torch.Tensor,
@@ -117,12 +138,13 @@ class MultiModalColdStartModel(nn.Module):
         item_text_tokens: torch.Tensor,
         item_image_vectors: torch.Tensor,
         item_tag_ids: torch.Tensor,
+        item_match_features: torch.Tensor,
     ) -> dict[str, torch.Tensor]:
         text_seq, text_repr = self.text_encoder(item_text_tokens)
         image_repr = self.image_proj(item_image_vectors)
         tag_repr = self.tag_proj(self.tag_embedding(item_tag_ids).mean(dim=1))
         item_memory = torch.stack([text_repr, image_repr, tag_repr], dim=1)
-        # 同时保留模态级表示和融合后的商品摘要，分别用于注意力和最终排序。
+        # 同时保留模态级表示和融合后商品摘要，分别用于注意力和最终排序。
         item_summary = self.item_proj(torch.cat([text_repr, image_repr, tag_repr], dim=1))
 
         interaction_repr = self.interaction_encoder(interaction_seq)
@@ -131,8 +153,16 @@ class MultiModalColdStartModel(nn.Module):
 
         # 用用户表示去关注商品的文本、图像和标签三种视图。
         fused_item, attention_weights = self.fusion(user_query, item_memory)
+        match_repr = self.match_proj(item_match_features)
+        gate = self.match_gate(torch.cat([user_query, match_repr], dim=1))
+        gated_user_query = user_query * gate
+
         joint = torch.cat([user_query, fused_item, item_summary], dim=1)
-        ranking_score = self.rank_head(joint).squeeze(1)
+        ranking_score_base = self.rank_head(joint).squeeze(1)
+        ranking_score_with_match = self.rank_with_match(
+            torch.cat([gated_user_query, fused_item, item_summary, match_repr], dim=1)
+        ).squeeze(1)
+        ranking_score = 0.5 * ranking_score_base + 0.5 * ranking_score_with_match
         multilabel_logits = self.multilabel_head(user_query)
 
         return {
